@@ -44,6 +44,43 @@ from .services.geolocation import (
 logger = logging.getLogger(__name__)
 
 
+def extract_testimonies(chart: Dict[str, Any], contract: Dict[str, str]) -> List[str]:
+    """Extract normalized testimonies from a chart using category contract.
+
+    Parameters
+    ----------
+    chart : Dict[str, Any]
+        Chart data containing an ``aspects`` list.
+    contract : Dict[str, str]
+        Mapping of role names to planets. Only the ``examiner`` role is
+        currently supported.
+
+    Returns
+    -------
+    List[str]
+        Unique testimony tokens such as ``moon_applying_trine_examiner_sun``.
+    """
+
+    testimonies: List[str] = []
+    seen_testimonies: set[str] = set()
+    aspects = chart.get("aspects", [])
+    examiner = (contract or {}).get("examiner")
+
+    for aspect in aspects:
+        if not aspect.get("applying"):
+            continue
+        p1 = aspect.get("planet1")
+        p2 = aspect.get("planet2")
+        aspect_name = aspect.get("aspect", "").lower()
+        if examiner and ((p1 == "Moon" and p2 == examiner) or (p2 == "Moon" and p1 == examiner)):
+            token = f"moon_applying_{aspect_name}_examiner_{examiner.lower()}"
+            if token not in seen_testimonies:
+                testimonies.append(token)
+                seen_testimonies.add(token)
+
+    return testimonies
+
+
 from models import (
     Planet,
     Aspect,
