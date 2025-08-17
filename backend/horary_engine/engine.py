@@ -39,12 +39,15 @@ from .services.geolocation import (
     LocationError,
     safe_geocode,
 )
+from .polarity_weights import TestimonyKey
 
 # Setup module logger
 logger = logging.getLogger(__name__)
 
 
-def extract_testimonies(chart: Dict[str, Any], contract: Dict[str, str]) -> List[str]:
+def extract_testimonies(
+    chart: Dict[str, Any], contract: Dict[str, str]
+) -> List[TestimonyKey]:
     """Extract normalized testimonies from a chart using category contract.
 
     Parameters
@@ -57,12 +60,12 @@ def extract_testimonies(chart: Dict[str, Any], contract: Dict[str, str]) -> List
 
     Returns
     -------
-    List[str]
-        Unique testimony tokens such as ``moon_applying_trine_examiner_sun``.
+    List[TestimonyKey]
+        Unique testimony tokens such as ``TestimonyKey.MOON_APPLYING_TRINE_EXAMINER_SUN``.
     """
 
-    testimonies: List[str] = []
-    seen_testimonies: set[str] = set()
+    testimonies: List[TestimonyKey] = []
+    seen_testimonies: set[TestimonyKey] = set()
     aspects = chart.get("aspects", [])
     examiner = (contract or {}).get("examiner")
 
@@ -73,7 +76,11 @@ def extract_testimonies(chart: Dict[str, Any], contract: Dict[str, str]) -> List
         p2 = aspect.get("planet2")
         aspect_name = aspect.get("aspect", "").lower()
         if examiner and ((p1 == "Moon" and p2 == examiner) or (p2 == "Moon" and p1 == examiner)):
-            token = f"moon_applying_{aspect_name}_examiner_{examiner.lower()}"
+            token_str = f"moon_applying_{aspect_name}_examiner_{examiner.lower()}"
+            try:
+                token = TestimonyKey(token_str)
+            except ValueError:
+                continue
             if token not in seen_testimonies:
                 testimonies.append(token)
                 seen_testimonies.add(token)
