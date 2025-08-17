@@ -79,7 +79,7 @@ class TraditionalReceptionCalculator:
                 reception_type, planet1, planet2, reception_details
             ),
             "traditional_strength": self._calculate_reception_strength(
-                reception_type, reception_details
+                reception_1_to_2, reception_2_to_1
             ),
         }
 
@@ -233,22 +233,19 @@ class TraditionalReceptionCalculator:
             return f"{receiving.value} receives {received.value} by {dignities}"
         return f"{reception_type} reception"
 
-    def _calculate_reception_strength(self, reception_type: str, details: Dict) -> int:
-        """Calculate numerical strength of reception for confidence calculations"""
-        if reception_type == "none":
-            return 0
-        if reception_type == "mutual_rulership":
-            return 10  # Strongest
-        if reception_type == "mutual_exaltation":
-            return 8
-        if reception_type == "mixed_reception":
-            return 6
-        if reception_type == "mutual_term":
-            return 5
-        if reception_type == "mutual_face":
-            return 4
-        if reception_type == "unilateral":
-            dignities = details.get("dignities", [])
+    def _calculate_reception_strength(
+        self, reception_1_to_2: List[str], reception_2_to_1: List[str]
+    ) -> int:
+        """Calculate numerical reception strength considering both directions.
+
+        Each dignity type maps to a base strength:
+        domicile=5, exaltation=4, triplicity=3, term=2, face=1.
+        The mutual reception strength is the minimum of the two directional
+        strengths, with +1 synergy if either direction meets at least
+        triplicity strength.
+        """
+
+        def strength_from_dignities(dignities: List[str]) -> int:
             if "domicile" in dignities:
                 return 5
             if "exaltation" in dignities:
@@ -259,8 +256,15 @@ class TraditionalReceptionCalculator:
                 return 2
             if "face" in dignities:
                 return 1
-            return 1
-        return 1
+            return 0
+
+        strength_a = strength_from_dignities(reception_1_to_2)
+        strength_b = strength_from_dignities(reception_2_to_1)
+
+        base_strength = min(strength_a, strength_b)
+        synergy = 1 if (strength_a >= 3 or strength_b >= 3) else 0
+
+        return base_strength + synergy
 
     def _calculate_house_position(self, longitude: float, houses: List[float]) -> int:
         """Helper method for house calculation"""
