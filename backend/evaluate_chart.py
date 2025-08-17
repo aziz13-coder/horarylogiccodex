@@ -13,6 +13,7 @@ from backend.category_router import get_contract
 from backend.horary_engine.engine import extract_testimonies
 from backend.horary_engine.aggregator import aggregate
 from backend.horary_engine.rationale import build_rationale
+from backend.horary_engine.utils import token_to_string
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,13 @@ def evaluate_chart(chart: Dict[str, Any]) -> Dict[str, Any]:
     testimonies = extract_testimonies(chart, contract)
     score, ledger = aggregate(testimonies)
     # Surface ledger details for downstream inspection and debugging
-    logger.info("Contribution ledger: %s", ledger)
+    logger.info(
+        "Contribution ledger: %s",
+        [
+            {**entry, "key": token_to_string(entry.get("key"))}
+            for entry in ledger
+        ],
+    )
     rationale = build_rationale(ledger)
     verdict = "YES" if score > 0 else "NO"
     return {"verdict": verdict, "ledger": ledger, "rationale": rationale}

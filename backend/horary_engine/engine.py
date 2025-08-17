@@ -40,13 +40,14 @@ from .services.geolocation import (
     safe_geocode,
 )
 from .polarity_weights import TestimonyKey
+from models import Planet
 
 # Setup module logger
 logger = logging.getLogger(__name__)
 
 
 def extract_testimonies(
-    chart: Dict[str, Any], contract: Dict[str, str]
+    chart: Dict[str, Any], contract: Dict[str, Planet]
 ) -> List[TestimonyKey]:
     """Extract normalized testimonies from a chart using category contract.
 
@@ -54,7 +55,7 @@ def extract_testimonies(
     ----------
     chart : Dict[str, Any]
         Chart data containing an ``aspects`` list.
-    contract : Dict[str, str]
+    contract : Dict[str, Planet]
         Mapping of role names to planets. Only the ``examiner`` role is
         currently supported.
 
@@ -75,8 +76,13 @@ def extract_testimonies(
         p1 = aspect.get("planet1")
         p2 = aspect.get("planet2")
         aspect_name = aspect.get("aspect", "").lower()
-        if examiner and ((p1 == "Moon" and p2 == examiner) or (p2 == "Moon" and p1 == examiner)):
-            token_str = f"moon_applying_{aspect_name}_examiner_{examiner.lower()}"
+        if examiner and (
+            (p1 == "Moon" and p2 == examiner.value)
+            or (p2 == "Moon" and p1 == examiner.value)
+        ):
+            token_str = (
+                f"moon_applying_{aspect_name}_examiner_{examiner.value.lower()}"
+            )
             try:
                 token = TestimonyKey(token_str)
             except ValueError:

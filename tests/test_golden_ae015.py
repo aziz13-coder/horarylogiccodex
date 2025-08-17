@@ -7,6 +7,7 @@ import sys
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from backend.evaluate_chart import evaluate_chart
+from backend.horary_engine.polarity_weights import TestimonyKey
 
 
 def test_ae015_golden_expect_yes():
@@ -15,4 +16,4 @@ def test_ae015_golden_expect_yes():
     result = evaluate_chart(chart)
     assert result["verdict"] == "YES"
     keys = [entry["key"] for entry in result["ledger"]]
-    assert "moon_applying_trine_examiner_sun" in keys
+    assert TestimonyKey.MOON_APPLYING_TRINE_EXAMINER_SUN in keys
