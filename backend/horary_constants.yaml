@@ -103,7 +103,7 @@ confidence:
   
   # Denial confidence levels  
   denial:
-    prohibition: 85
+    frustration: 85
     frustration_retrograde: 75    # configurable instead of automatic NO
     refranation: 80
     abscission: 70
