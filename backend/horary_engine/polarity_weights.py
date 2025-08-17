@@ -1,13 +1,38 @@
 """Central repository for testimony polarity and weight tables."""
 
-POLARITY_TABLE = {
+from __future__ import annotations
+
+from enum import Enum, auto
+
+
+class Polarity(Enum):
+    """Enum representing whether a testimony helps or harms the question."""
+
+    FAVORABLE = auto()
+    UNFAVORABLE = auto()
+    NEUTRAL = auto()
+
+
+class TestimonyKey(Enum):
+    """Canonical keys for all supported testimony tokens."""
+
+    MOON_APPLYING_TRINE_EXAMINER_SUN = "moon_applying_trine_examiner_sun"
+    MOON_APPLYING_SQUARE_EXAMINER_SUN = "moon_applying_square_examiner_sun"
+
+
+# Prevent pytest from collecting the enum as a test class
+TestimonyKey.__test__ = False
+
+
+POLARITY_TABLE: dict[TestimonyKey, Polarity] = {
     # Favorable Moon applying trine to the examiner (Sun in education questions)
-    "moon_applying_trine_examiner_sun": 1,
+    TestimonyKey.MOON_APPLYING_TRINE_EXAMINER_SUN: Polarity.FAVORABLE,
     # Example negative testimony
-    "moon_applying_square_examiner_sun": -1,
+    TestimonyKey.MOON_APPLYING_SQUARE_EXAMINER_SUN: Polarity.UNFAVORABLE,
 }
 
-WEIGHT_TABLE = {
-    "moon_applying_trine_examiner_sun": 1.0,
-    "moon_applying_square_examiner_sun": 1.0,
+WEIGHT_TABLE: dict[TestimonyKey, float] = {
+    TestimonyKey.MOON_APPLYING_TRINE_EXAMINER_SUN: 1.0,
+    TestimonyKey.MOON_APPLYING_SQUARE_EXAMINER_SUN: 1.0,
 }
+
