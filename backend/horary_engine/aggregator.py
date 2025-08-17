@@ -28,7 +28,7 @@ def _coerce_tokens(testimonies: Iterable[TestimonyKey | str]) -> Sequence[Testim
 
 def aggregate(
     testimonies: Iterable[TestimonyKey | str],
-) -> Tuple[float, List[Dict[str, float | str | Polarity]]]:
+) -> Tuple[float, List[Dict[str, float | TestimonyKey | Polarity]]]:
     """Aggregate testimony tokens into a weighted score and ledger.
 
     The aggregator is *symmetric* in that positive and negative testimonies are
@@ -44,7 +44,7 @@ def aggregate(
 
     total_yes = 0.0
     total_no = 0.0
-    ledger: List[Dict[str, float | str | Polarity]] = []
+    ledger: List[Dict[str, float | TestimonyKey | Polarity]] = []
     seen: set[TestimonyKey] = set()
 
     tokens = _coerce_tokens(testimonies)
@@ -64,7 +64,7 @@ def aggregate(
         total_no += delta_no
         ledger.append(
             {
-                "key": token.value,
+                "key": token,
                 "polarity": polarity,
                 "weight": weight,
                 "delta_yes": delta_yes,

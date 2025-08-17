@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from typing import Dict
 
-_CONTRACTS: Dict[str, Dict[str, str]] = {
-    "education": {"examiner": "Sun"},
+from backend.models import Planet
+
+_CONTRACTS: Dict[str, Dict[str, Planet]] = {
+    "education": {"examiner": Planet.SUN},
 }
 
 
-def get_contract(category: str) -> Dict[str, str]:
+def get_contract(category: str) -> Dict[str, Planet]:
     """Return role contract for a given category (case-insensitive)."""
     if not category:
         return {}
