@@ -14,5 +14,5 @@ def test_ae015_golden_expect_yes():
     chart = json.loads(data_path.read_text(encoding="utf-8"))
     result = evaluate_chart(chart)
     assert result["verdict"] == "YES"
-    tokens = [entry["token"] for entry in result["ledger"]]
-    assert "moon_applying_trine_examiner_sun" in tokens
+    keys = [entry["key"] for entry in result["ledger"]]
+    assert "moon_applying_trine_examiner_sun" in keys

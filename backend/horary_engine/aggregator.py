@@ -6,7 +6,7 @@ from typing import Iterable, List, Tuple, Dict
 from .polarity_weights import POLARITY_TABLE, WEIGHT_TABLE
 
 
-def aggregate(testimonies: Iterable[str]) -> Tuple[float, List[Dict[str, float]]]:
+def aggregate(testimonies: Iterable[str]) -> Tuple[float, List[Dict[str, float | str]]]:
     """Aggregate testimony tokens into a weighted score and ledger.
 
     The aggregator is *symmetric* in that positive and negative testimonies are
@@ -19,8 +19,9 @@ def aggregate(testimonies: Iterable[str]) -> Tuple[float, List[Dict[str, float]]
     * deterministic order: processing occurs in sorted token order
     """
 
-    total = 0.0
-    ledger: List[Dict[str, float]] = []
+    total_yes = 0.0
+    total_no = 0.0
+    ledger: List[Dict[str, float | str]] = []
     seen: set[str] = set()
 
     for token in sorted(testimonies):
@@ -33,13 +34,17 @@ def aggregate(testimonies: Iterable[str]) -> Tuple[float, List[Dict[str, float]]
         weight = WEIGHT_TABLE.get(token, 0.0)
         if weight < 0:
             raise ValueError("Weights must be non-negative for monotonicity")
-        contribution = polarity * weight
-        total += contribution
+        delta_yes = weight if polarity > 0 else 0.0
+        delta_no = weight if polarity < 0 else 0.0
+        total_yes += delta_yes
+        total_no += delta_no
         ledger.append({
-            "token": token,
-            "weight": weight,
+            "key": token,
             "polarity": polarity,
-            "contribution": contribution,
+            "weight": weight,
+            "delta_yes": delta_yes,
+            "delta_no": delta_no,
         })
 
+    total = total_yes - total_no
     return total, ledger
