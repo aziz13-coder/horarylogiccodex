@@ -3093,7 +3093,8 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                         "confidence": config.confidence.perfection.direct_with_mutual_rulership,
                         "reason": f"Direct perfection: {self._format_aspect_for_display(querent.value, direct_aspect['aspect'], quesited.value, True)} with {self._format_reception_for_display(reception, querent, quesited, chart)}",
                         "reception": reception,
-                        "aspect": direct_aspect
+                        "aspect": direct_aspect,
+                        "tags": [{"family": "perfection", "kind": "direct"}],
                     }
                 elif reception == "mutual_exaltation":
                     base_confidence = config.confidence.perfection.direct_with_mutual_exaltation
@@ -3106,7 +3107,8 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                         "confidence": int(boosted_confidence),
                         "reason": f"Direct perfection: {self._format_aspect_for_display(querent.value, direct_aspect['aspect'], quesited.value, True)} with {self._format_reception_for_display(reception, querent, quesited, chart)}",
                         "reception": reception,
-                        "aspect": direct_aspect
+                        "aspect": direct_aspect,
+                        "tags": [{"family": "perfection", "kind": "direct"}],
                     }
                 else:
                     favorable, penalty_reasons = self._is_aspect_favorable_enhanced(
@@ -3130,7 +3132,8 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                             "confidence": confidence_value,
                             "reason": base_reason,
                             "reception": reception,
-                            "aspect": direct_aspect
+                            "aspect": direct_aspect,
+                            "tags": [{"family": "perfection", "kind": "direct"}],
                         }
                     else:
                         if penalty_reasons:
@@ -3149,7 +3152,8 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                             "confidence": max(config.confidence.perfection.direct_basic - 25, 0),
                             "reason": base_reason,
                             "reception": reception,
-                            "aspect": direct_aspect
+                            "aspect": direct_aspect,
+                            "tags": [{"family": "perfection", "kind": "direct"}],
                         }
         
         # CRITICAL FIX: Only check translation if NO direct aspect exists
@@ -3163,7 +3167,8 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                     "favorable": translation["favorable"],
                     "confidence": config.confidence.perfection.translation_of_light,
                     "reason": f"Translation of light by {translation['translator'].value} - {translation['sequence']}",
-                    "translator": translation["translator"]
+                    "translator": translation["translator"],
+                    "tags": [{"family": "perfection", "kind": "tol"}],
                 }
         
         # 3. Enhanced collection of light (only when no direct connection)
@@ -3176,7 +3181,8 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                     "favorable": collection["favorable"],
                     "confidence": config.confidence.perfection.collection_of_light,
                     "reason": f"Collection of light by {collection['collector'].value}",
-                    "collector": collection["collector"]
+                    "collector": collection["collector"],
+                    "tags": [{"family": "perfection", "kind": "col"}],
                 }
         
         # 4. Enhanced mutual reception without aspect

@@ -3,7 +3,13 @@ from __future__ import annotations
 
 from typing import Iterable, List, Tuple, Dict, Sequence
 
-from .polarity_weights import POLARITY_TABLE, WEIGHT_TABLE, TestimonyKey
+from .polarity_weights import (
+    POLARITY_TABLE,
+    WEIGHT_TABLE,
+    FAMILY_TABLE,
+    KIND_TABLE,
+    TestimonyKey,
+)
 from .polarity import Polarity
 
 
@@ -24,7 +30,7 @@ def _coerce_tokens(testimonies: Iterable[TestimonyKey | str]) -> Sequence[Testim
 
 def aggregate(
     testimonies: Iterable[TestimonyKey | str],
-) -> Tuple[float, List[Dict[str, float | TestimonyKey | Polarity]]]:
+) -> Tuple[float, List[Dict[str, float | TestimonyKey | Polarity | str | bool]]]:
     """Aggregate testimony tokens into a weighted score and ledger.
 
     The aggregator is *symmetric* in that positive and negative testimonies are
@@ -40,8 +46,9 @@ def aggregate(
 
     total_yes = 0.0
     total_no = 0.0
-    ledger: List[Dict[str, float | TestimonyKey | Polarity]] = []
+    ledger: List[Dict[str, float | TestimonyKey | Polarity | str | bool]] = []
     seen: set[TestimonyKey] = set()
+    families_seen: set[str] = set()
 
     tokens = _coerce_tokens(testimonies)
     for token in sorted(tokens, key=lambda t: t.value):
@@ -51,11 +58,18 @@ def aggregate(
         polarity = POLARITY_TABLE.get(token, Polarity.NEUTRAL)
         if polarity is Polarity.NEUTRAL:
             continue  # unknown or neutral token
+
+        family = FAMILY_TABLE.get(token)
+        kind = KIND_TABLE.get(token)
+        context_only = family is not None and family in families_seen
+        if family is not None and not context_only:
+            families_seen.add(family)
+
         weight = WEIGHT_TABLE.get(token, 0.0)
         if weight < 0:
             raise ValueError("Weights must be non-negative for monotonicity")
-        delta_yes = weight if polarity is Polarity.POSITIVE else 0.0
-        delta_no = weight if polarity is Polarity.NEGATIVE else 0.0
+        delta_yes = weight if (not context_only and polarity is Polarity.POSITIVE) else 0.0
+        delta_no = weight if (not context_only and polarity is Polarity.NEGATIVE) else 0.0
         total_yes += delta_yes
         total_no += delta_no
         ledger.append(
@@ -65,6 +79,9 @@ def aggregate(
                 "weight": weight,
                 "delta_yes": delta_yes,
                 "delta_no": delta_no,
+                "family": family,
+                "kind": kind,
+                "context": context_only,
             }
         )
 
