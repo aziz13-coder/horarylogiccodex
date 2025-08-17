@@ -2,15 +2,9 @@
 
 from __future__ import annotations
 
-from enum import Enum, auto
+from enum import Enum
 
-
-class Polarity(Enum):
-    """Enum representing whether a testimony helps or harms the question."""
-
-    FAVORABLE = auto()
-    UNFAVORABLE = auto()
-    NEUTRAL = auto()
+from .polarity import Polarity
 
 
 class TestimonyKey(Enum):
@@ -26,9 +20,9 @@ TestimonyKey.__test__ = False
 
 POLARITY_TABLE: dict[TestimonyKey, Polarity] = {
     # Favorable Moon applying trine to the examiner (Sun in education questions)
-    TestimonyKey.MOON_APPLYING_TRINE_EXAMINER_SUN: Polarity.FAVORABLE,
+    TestimonyKey.MOON_APPLYING_TRINE_EXAMINER_SUN: Polarity.POSITIVE,
     # Example negative testimony
-    TestimonyKey.MOON_APPLYING_SQUARE_EXAMINER_SUN: Polarity.UNFAVORABLE,
+    TestimonyKey.MOON_APPLYING_SQUARE_EXAMINER_SUN: Polarity.NEGATIVE,
 }
 
 WEIGHT_TABLE: dict[TestimonyKey, float] = {
