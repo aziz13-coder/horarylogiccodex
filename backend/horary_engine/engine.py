@@ -1371,22 +1371,38 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                         "aspect": sep,
                     }
 
-        # If a direct aspect exists, handle prohibition or immediate denial before considering Moon aspects
+        # Handle explicit refranation before other checks
+        if perfection.get("type") == "refranation":
+            return {
+                "result": "NO",
+                "confidence": min(confidence, perfection.get("confidence", cfg().confidence.denial.refranation)),
+                "reasoning": reasoning + [f"Refranation: {perfection['reason']}"] ,
+                "timing": None,
+                "traditional_factors": {
+                    "perfection_type": "refranation",
+                    "querent_strength": chart.planets[querent_planet].dignity_score,
+                    "quesited_strength": chart.planets[quesited_planet].dignity_score,
+                    "reception": self._detect_reception_between_planets(chart, primary_significator, secondary_significator),
+                },
+                "solar_factors": solar_factors,
+            }
+
+        # If a direct aspect exists, handle frustration or immediate denial before considering Moon aspects
         if "aspect" in perfection:
-            prohibition_result = self._check_traditional_prohibition(
+            frustration_result = self._check_frustration(
                 chart, primary_significator, secondary_significator
             )
-            if prohibition_result.get("found"):
+            if frustration_result.get("found"):
                 return {
                     "result": "NO",
-                    "confidence": min(confidence, prohibition_result["confidence"]),
+                    "confidence": min(confidence, frustration_result["confidence"]),
                     "reasoning": reasoning
-                    + [f"Prohibition: {prohibition_result['reason']}"],
+                    + [f"Frustration: {frustration_result['reason']}"],
                     "timing": None,
                     "traditional_factors": {
-                        "perfection_type": "prohibition",
-                        "prohibiting_planet": prohibition_result["prohibiting_planet"].value,
-                        "reception": prohibition_result.get("reception", "none"),
+                        "perfection_type": "frustration",
+                        "frustrating_planet": frustration_result["frustrating_planet"].value,
+                        "reception": frustration_result.get("reception", "none"),
                         "querent_strength": chart.planets[querent_planet].dignity_score,
                         "quesited_strength": chart.planets[quesited_planet].dignity_score,
                     },
@@ -1837,13 +1853,13 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         
         config = cfg()
         
-        # Traditional Prohibition - any planet can prohibit by aspecting a significator first
-        prohibition_result = self._check_traditional_prohibition(chart, querent, quesited)
-        if prohibition_result["found"]:
+        # Traditional Frustration - any planet can aspect a significator first
+        frustration_result = self._check_frustration(chart, querent, quesited)
+        if frustration_result["found"]:
             return {
                 "denied": True,
-                "confidence": prohibition_result["confidence"],
-                "reason": prohibition_result["reason"]
+                "confidence": frustration_result["confidence"],
+                "reason": frustration_result["reason"]
             }
         
         # Enhanced retrograde handling - configurable instead of automatic denial
@@ -1871,13 +1887,13 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         
         config = cfg()
         
-        # Traditional Prohibition - any planet can prohibit by aspecting a significator first
-        prohibition_result = self._check_traditional_prohibition(chart, querent, quesited)
-        if prohibition_result["found"]:
+        # Traditional Frustration - any planet can aspect a significator first
+        frustration_result = self._check_frustration(chart, querent, quesited)
+        if frustration_result["found"]:
             return {
                 "denied": True,
-                "confidence": prohibition_result["confidence"],
-                "reason": prohibition_result["reason"]
+                "confidence": frustration_result["confidence"],
+                "reason": frustration_result["reason"]
             }
         
         # Enhanced retrograde handling - configurable instead of automatic denial
@@ -3052,8 +3068,19 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                             "aspect": direct_aspect
                         }
             
-            perfects_in_sign = self._enhanced_perfects_in_sign(querent_pos, quesited_pos, direct_aspect, chart)
-            
+            perfects_in_sign, impediment = self._enhanced_perfects_in_sign(querent_pos, quesited_pos, direct_aspect, chart)
+
+            if impediment and impediment.get("type") == "refranation":
+                planet = impediment["planet"].value
+                return {
+                    "perfects": False,
+                    "type": "refranation",
+                    "favorable": False,
+                    "confidence": cfg().confidence.denial.refranation,
+                    "reason": f"{planet} stations before perfecting aspect",
+                    "aspect": direct_aspect,
+                }
+
             if perfects_in_sign and not is_combustion_conjunction:
                 reception = self._check_enhanced_mutual_reception(chart, querent, quesited)
                 
@@ -3327,14 +3354,14 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         blockers: List[Dict[str, Any]] = []
         severity_rank = {"fatal": 0, "severe": 1, "warning": 2}
 
-        # Traditional prohibition takes top priority
-        prohibition = self._check_traditional_prohibition(chart, querent, quesited)
-        if prohibition.get("found"):
+        # Traditional frustration takes top priority
+        frustration = self._check_frustration(chart, querent, quesited)
+        if frustration.get("found"):
             blockers.append({
-                "type": "prohibition",
+                "type": "frustration",
                 "severity": "fatal",
-                "reason": prohibition["reason"],
-                "confidence": prohibition.get("confidence", 80),
+                "reason": frustration["reason"],
+                "confidence": frustration.get("confidence", 80),
             })
 
         # Moon's next aspect denial
@@ -3368,15 +3395,15 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         blockers.sort(key=lambda b: severity_rank.get(b.get("severity", "warning"), 99))
         return {"blockers": blockers, "fatal": any(b["severity"] == "fatal" for b in blockers)}
 
-    def _check_traditional_prohibition(self, chart: HoraryChart, querent: Planet, quesited: Planet) -> Dict[str, Any]:
-        """Traditional prohibition following Lilly's definition"""
+    def _check_frustration(self, chart: HoraryChart, querent: Planet, quesited: Planet) -> Dict[str, Any]:
+        """Traditional frustration: other aspect completes before significators perfect"""
         
         config = cfg()
         
         # TRADITIONAL REQUIREMENT 1: There must be a pending perfection between significators
         direct_aspect = self._find_applying_aspect(chart, querent, quesited)
         if not direct_aspect:
-            return {"found": False}  # No pending perfection = no prohibition possible
+            return {"found": False}  # No pending perfection = no frustration possible
 
         # Calculate timing for the main perfection
         querent_pos = chart.planets[querent]
@@ -3386,57 +3413,57 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         # TRADITIONAL REQUIREMENT 2: Check if any third planet completes aspect first
         for aspect in chart.aspects:
             if not aspect.applying:
-                continue  # Only applying aspects can prohibit
-            
-            # Identify the prohibiting planet and target significator
-            prohibiting_planet = None
+                continue  # Only applying aspects can frustrate
+
+            # Identify the frustrating planet and target significator
+            frustrating_planet = None
             target_significator = None
-            
+
             if aspect.planet1 in [querent, quesited] and aspect.planet2 not in [querent, quesited]:
                 target_significator = aspect.planet1
-                prohibiting_planet = aspect.planet2
+                frustrating_planet = aspect.planet2
             elif aspect.planet2 in [querent, quesited] and aspect.planet1 not in [querent, quesited]:
                 target_significator = aspect.planet2
-                prohibiting_planet = aspect.planet1
+                frustrating_planet = aspect.planet1
             else:
-                continue  # Not a prohibition scenario
-            
-            # TRADITIONAL REQUIREMENT 3: Prohibiting aspect must complete before significator perfection
-            prohibiting_pos = chart.planets[prohibiting_planet]
+                continue  # Not a frustration scenario
+
+            # TRADITIONAL REQUIREMENT 3: Frustrating aspect must complete before significator perfection
+            frustrating_pos = chart.planets[frustrating_planet]
             target_pos = chart.planets[target_significator]
-            prohibiting_days = self._days_to_aspect_perfection(
+            frustrating_days = self._days_to_aspect_perfection(
                 target_pos,
-                prohibiting_pos,
+                frustrating_pos,
                 {"degrees_to_exact": aspect.degrees_to_exact},
             )
 
-            if prohibiting_days < main_perfection_days:
-                
-                # Assess severity based on prohibiting planet
-                base_confidence = config.confidence.denial.prohibition
-                prohibition_type = "general"
-                
-                if prohibiting_planet == Planet.SATURN:
-                    base_confidence += 10  # Saturn prohibition more severe
-                    prohibition_type = "Saturn"
-                elif prohibiting_planet == Planet.MARS:
-                    base_confidence += 5   # Mars prohibition significant
-                    prohibition_type = "Mars"
-                
-                # Check reception with prohibiting planet (can soften prohibition)
-                reception_with_prohibitor = self._check_dignified_reception(chart, target_significator, prohibiting_planet)
-                if reception_with_prohibitor:
+            if frustrating_days < main_perfection_days:
+
+                # Assess severity based on frustrating planet
+                base_confidence = config.confidence.denial.frustration
+                frustration_type = "general"
+
+                if frustrating_planet == Planet.SATURN:
+                    base_confidence += 10  # Saturn frustration more severe
+                    frustration_type = "Saturn"
+                elif frustrating_planet == Planet.MARS:
+                    base_confidence += 5   # Mars frustration significant
+                    frustration_type = "Mars"
+
+                # Check reception with frustrating planet (can soften)
+                reception_with_frustrator = self._check_dignified_reception(chart, target_significator, frustrating_planet)
+                if reception_with_frustrator:
                     base_confidence -= 15  # Reception can redirect rather than deny
-                    prohibition_type += " with reception"
-                
+                    frustration_type += " with reception"
+
                 return {
                     "found": True,
                     "confidence": min(85, base_confidence),
-                    "reason": f"Prohibition by {prohibiting_planet.value} - aspects {target_significator.value} before significator perfection",
-                    "prohibiting_planet": prohibiting_planet,
+                    "reason": f"{frustrating_planet.value} aspects {target_significator.value} before significator perfection",
+                    "frustrating_planet": frustrating_planet,
                     "target_significator": target_significator,
-                    "reception": reception_with_prohibitor,
-                    "type": prohibition_type
+                    "reception": reception_with_frustrator,
+                    "type": frustration_type
                 }
         
         return {"found": False}
@@ -3458,9 +3485,11 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         relative_speed = abs(pos1.speed - pos2.speed)
         return degrees_to_exact / relative_speed if relative_speed > 0 else float('inf')
     
-    def _enhanced_perfects_in_sign(self, pos1: PlanetPosition, pos2: PlanetPosition, 
-                                  aspect_info: Dict, chart: HoraryChart) -> bool:
-        """Enhanced perfection check with directional awareness"""
+    def _enhanced_perfects_in_sign(self, pos1: PlanetPosition, pos2: PlanetPosition,
+                                  aspect_info: Dict, chart: HoraryChart) -> Tuple[bool, Optional[Dict[str, Any]]]:
+        """Enhanced perfection check with directional awareness.
+
+        Returns tuple (perfects, impediment) where impediment details reason if False."""
         
         # Use enhanced sign exit calculations
         days_to_exit_1 = days_to_sign_exit(pos1.longitude, pos1.speed)
@@ -3469,7 +3498,7 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         # Estimate days until aspect perfects
         relative_speed = abs(pos1.speed - pos2.speed)
         if relative_speed == 0:
-            return False
+            return False, {"type": "stalled"}
 
         days_to_perfect = aspect_info["degrees_to_exact"] / relative_speed
 
@@ -3481,20 +3510,20 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         if planet_id_1 is not None:
             station_jd_1 = calculate_next_station_time(planet_id_1, jd_start)
             if station_jd_1 and (station_jd_1 - jd_start) < days_to_perfect:
-                return False
+                return False, {"type": "refranation", "planet": pos1.planet}
 
         if planet_id_2 is not None:
             station_jd_2 = calculate_next_station_time(planet_id_2, jd_start)
             if station_jd_2 and (station_jd_2 - jd_start) < days_to_perfect:
-                return False
+                return False, {"type": "refranation", "planet": pos2.planet}
 
         # Check if either planet exits sign before perfection
         if days_to_exit_1 and days_to_perfect > days_to_exit_1:
-            return False
+            return False, {"type": "sign_exit", "planet": pos1.planet}
         if days_to_exit_2 and days_to_perfect > days_to_exit_2:
-            return False
+            return False, {"type": "sign_exit", "planet": pos2.planet}
 
-        return True
+        return True, None
     
     def _check_enhanced_mutual_reception(self, chart: HoraryChart, planet1: Planet, planet2: Planet) -> str:
         """Enhanced mutual reception check using centralized calculator"""
