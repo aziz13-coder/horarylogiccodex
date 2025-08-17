@@ -3,12 +3,8 @@ from __future__ import annotations
 
 from typing import Iterable, List, Tuple, Dict, Sequence
 
-from .polarity_weights import (
-    POLARITY_TABLE,
-    WEIGHT_TABLE,
-    Polarity,
-    TestimonyKey,
-)
+from .polarity_weights import POLARITY_TABLE, WEIGHT_TABLE, TestimonyKey
+from .polarity import Polarity
 
 
 def _coerce_tokens(testimonies: Iterable[TestimonyKey | str]) -> Sequence[TestimonyKey]:
@@ -35,8 +31,8 @@ def aggregate(
     treated uniformly via the ``POLARITY_TABLE``. It enforces several
     invariants:
 
-    * polarity: each token must map to ``Polarity.FAVORABLE`` or
-      ``Polarity.UNFAVORABLE``
+    * polarity: each token must map to ``Polarity.POSITIVE`` or
+      ``Polarity.NEGATIVE``
     * monotonicity: weights are non-negative and contributions sum linearly
     * single contribution: duplicate tokens are ignored
     * deterministic order: processing occurs in sorted token order
@@ -58,8 +54,8 @@ def aggregate(
         weight = WEIGHT_TABLE.get(token, 0.0)
         if weight < 0:
             raise ValueError("Weights must be non-negative for monotonicity")
-        delta_yes = weight if polarity is Polarity.FAVORABLE else 0.0
-        delta_no = weight if polarity is Polarity.UNFAVORABLE else 0.0
+        delta_yes = weight if polarity is Polarity.POSITIVE else 0.0
+        delta_no = weight if polarity is Polarity.NEGATIVE else 0.0
         total_yes += delta_yes
         total_no += delta_no
         ledger.append(

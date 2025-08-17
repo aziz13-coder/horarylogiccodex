@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from typing import List, Dict
 
-from .polarity_weights import Polarity, TestimonyKey
+from .polarity import Polarity, polarity_sign
+from .polarity_weights import TestimonyKey
 from .utils import token_to_string
 
 
@@ -19,11 +20,9 @@ def build_rationale(
         key = token_to_string(entry.get("key", ""))
         weight = entry.get("weight", 0.0)
         polarity = entry.get("polarity", Polarity.NEUTRAL)
-        if polarity is Polarity.FAVORABLE:
-            sign = "+"
-        elif polarity is Polarity.UNFAVORABLE:
-            sign = "-"
+        sign = polarity_sign(polarity)
+        if sign == "0":
+            result.append(f"{key} ({sign})")
         else:
-            sign = ""
-        result.append(f"{key} {sign}{weight}")
+            result.append(f"{key} ({sign}{weight})")
     return result

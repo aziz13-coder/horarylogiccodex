@@ -19,7 +19,7 @@ def test_category_router_toggle_and_rationale():
     chart = build_chart("education")
     result = evaluate_chart(chart)
     assert result["verdict"] == "YES"
-    assert result["rationale"] == ["moon_applying_trine_examiner_sun +1.0"]
+    assert result["rationale"] == ["moon_applying_trine_examiner_sun (+1.0)"]
 
     chart_no = build_chart("finance")
     result_no = evaluate_chart(chart_no)
